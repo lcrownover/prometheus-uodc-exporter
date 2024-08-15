@@ -1,0 +1,11 @@
+---
+interval: 2
+targets:
+  - label: "prometheus_label_here"
+    help: "Human-readable help doc explaining metric"
+    ip: "snmp target ip"
+    oid: "oid value"
+    port: 161
+    timeout: 2
+    retries: 1
+    community: "your community string"
