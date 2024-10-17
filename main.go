@@ -104,7 +104,7 @@ func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 	slog.Debug("pdu", "pdu", fmt.Sprintf("%+v", p))	
 	if p.Type == gosnmp.OctetString {
 		slog.Debug("snmp value string detected, trying to parse")
-		v := (p.Value).(string)
+		v := string(p.Value)
 		slog.Debug("v casted to string")
 		v = strings.TrimSpace(v)
 		f, err := strconv.ParseFloat(v, 64)
