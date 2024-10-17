@@ -89,11 +89,13 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to process config: %v", err)
 	}
+	slog.Debug("config", "struct", fmt.Sprintf("%+v", conf))
 	return &conf, nil
 }
 
 // GetSNMPValue uses a Target definition to get a gauge value via snmp call
 func GetSNMPValue(t Target) (float64, error) {
+	slog.Debug("getting snmp value", "target", *t.IP, "port", t.Port, "community", t.Community, "timeout_seconds", t.Timeout)
 	g := &gosnmp.GoSNMP{
 		Target:    *t.IP,
 		Port:      uint16(t.Port),
@@ -116,6 +118,7 @@ func GetSNMPValue(t Target) (float64, error) {
 	}
 
 	val, _ := gosnmp.ToBigInt(result.Variables[0].Value).Float64()
+	slog.Debug("got value", "value", val)
 	return val, nil
 }
 
@@ -127,8 +130,10 @@ func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 			val, err := GetSNMPValue(target)
 			if err != nil {
 				slog.Error("failed to get snmp value", "error", err)
+				slog.Debug("fail: setting guage value to 0")
 				gauges[*target.Label].Set(0) // delete this in prod
 			} else {
+				slog.Debug("success: setting guage value", "value", val)
 				gauges[*target.Label].Set(val)
 			}
 		}
@@ -152,6 +157,13 @@ func InitGauges(conf Config) map[string]prometheus.Gauge {
 
 func main() {
 	slog.Info("Starting Prometheus UODC Exporter")
+
+	_, debug := os.LookupEnv("DEBUG")
+	logLevel := slog.LevelInfo
+	if debug {
+		logLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})))
 
 	config, err := LoadConfig()
 	if err != nil {
