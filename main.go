@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -102,14 +103,14 @@ func GetSNMPValue(t Target) (float64, error) {
 
 	err := g.Connect()
 	if err != nil {
-		return 0, fmt.Errorf("Connect() err: %v", err)
+		return 0, fmt.Errorf("failed to connect to '%s:%d', err: %v", *t.IP, t.Port, err)
 	}
 	defer g.Conn.Close()
 
 	oids := []string{*t.OID}
 	result, err := g.Get(oids)
 	if err != nil {
-		return 0, fmt.Errorf("Get() err: %v", err)
+		return 0, fmt.Errorf("failed to get oid '%s', err: %v", *t.OID, err)
 	}
 
 	val, _ := gosnmp.ToBigInt(result.Variables[0].Value).Float64()
@@ -123,7 +124,7 @@ func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 		for _, target := range conf.Targets {
 			val, err := GetSNMPValue(target)
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("failed to get snmp value", "error", err)
 				gauges[*target.Label].Set(0) // delete this in prod
 			} else {
 				gauges[*target.Label].Set(val)
@@ -149,7 +150,7 @@ func InitGauges(conf Config) map[string]prometheus.Gauge {
 func main() {
 	config, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		slog.Error("failed to load config", "error", err)
 	}
 
 	// initialize all the gauges using the config targets
