@@ -74,6 +74,8 @@ func LoadConfig() (*Config, error) {
 		path = "/etc/prometheus-uodc-exporter/config.yaml"
 	}
 
+	slog.Info("Loading configuration", "path", path)
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file at %s: %v", path, err)
@@ -137,6 +139,7 @@ func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 // InitGauges generates a map of prometheus.Gauge based on the metric
 // label so we can assign values easily.
 func InitGauges(conf Config) map[string]prometheus.Gauge {
+	slog.Info("Initializing Gauges")
 	m := make(map[string]prometheus.Gauge)
 	for _, target := range conf.Targets {
 		m[*target.Label] = promauto.NewGauge(prometheus.GaugeOpts{
@@ -148,6 +151,8 @@ func InitGauges(conf Config) map[string]prometheus.Gauge {
 }
 
 func main() {
+	slog.Info("Starting Prometheus UODC Exporter")
+
 	config, err := LoadConfig()
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
