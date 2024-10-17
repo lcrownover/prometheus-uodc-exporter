@@ -40,7 +40,7 @@ func processConfig(conf *Config) (Config, error) {
 		conf.Interval = 2
 	}
 
-	for _, t := range conf.Targets {
+	for i, t := range conf.Targets {
 		if t.Label == nil {
 			return *conf, fmt.Errorf("label is required in target definition")
 		}
@@ -54,16 +54,16 @@ func processConfig(conf *Config) (Config, error) {
 			return *conf, fmt.Errorf("ip is required in target definition")
 		}
 		if t.Port == 0 {
-			t.Port = 161
+			conf.Targets[i].Port = 161
 		}
 		if t.Community == "" {
-			t.Community = "public"
+			conf.Targets[i].Community = "public"
 		}
 		if t.Timeout == 0 {
-			t.Timeout = 2
+			conf.Targets[i].Timeout = 2
 		}
 		if t.Retries == 0 {
-			t.Retries = 1
+			conf.Targets[i].Retries = 1
 		}
 	}
 	return *conf, nil
