@@ -95,7 +95,7 @@ func LoadConfig() (*Config, error) {
 
 // GetSNMPValue uses a Target definition to get a gauge value via snmp call
 func GetSNMPValue(t Target) (float64, error) {
-	slog.Debug("getting snmp value", "target", *t.IP, "port", t.Port, "community", t.Community, "timeout_seconds", t.Timeout)
+	slog.Debug("getting snmp value", "target", *t.IP, "port", t.Port, "community", t.Community, "oid", *t.OID, "timeout_seconds", t.Timeout)
 	g := &gosnmp.GoSNMP{
 		Target:    *t.IP,
 		Port:      uint16(t.Port),
