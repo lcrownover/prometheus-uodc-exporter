@@ -146,6 +146,7 @@ func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 func GetSNMPValue(t Target) (float64, error) {
 	slog.Debug(
 		"getting snmp value",
+		"label", *t.Label,
 		"target", *t.IP,
 		"port", t.Port,
 		"community", t.Community,
