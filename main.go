@@ -109,8 +109,8 @@ func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 			return 0, fmt.Errorf("failed to parse string into bytes")
 		}
 		sv := string(v)
-		slog.Debug("v casted to string")
 		sv = strings.TrimSpace(sv)
+		slog.Debug("value as string", "value", sv)
 		f, err := strconv.ParseFloat(sv, 64)
 		if err != nil {
 			return 0, fmt.Errorf("failed to parse float from string: %v", err)
