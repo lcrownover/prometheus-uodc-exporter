@@ -102,9 +102,11 @@ func ConvertSNMPStringToFloat(s string) (float64, error) {
 	ns := strings.ToLower(strings.TrimSpace(s))
 	switch ns {
 	case "off":
-		return 1, nil
-	case "on":
+		slog.Debug("found preconfigured string, returning value", "s", s, "value", 0)
 		return 0, nil
+	case "on":
+		slog.Debug("found preconfigured string, returning value", "s", s, "value", 1)
+		return 1, nil
 	}
 	return 0, fmt.Errorf("failed to parse string '%s' to float equivalent", s)
 }
