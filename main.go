@@ -98,12 +98,13 @@ func LoadConfig() (*Config, error) {
 // Sometimes we get strings back from SNMP like "OFF".
 // let's normalize those strings then write cases for them
 func ConvertSNMPStringToFloat(s string) (float64, error) {
+	slog.Debug("trying to parse known strings", "s", s)
 	ns := strings.ToLower(strings.TrimSpace(s))
 	switch ns {
 	case "off":
-		return 0, nil
-	case "on":
 		return 1, nil
+	case "on":
+		return 0, nil
 	}
 	return 0, fmt.Errorf("failed to parse string '%s' to float equivalent", s)
 }
