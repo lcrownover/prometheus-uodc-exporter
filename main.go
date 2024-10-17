@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -93,9 +95,36 @@ func LoadConfig() (*Config, error) {
 	return &conf, nil
 }
 
+// GetFloatFromSNMPValue is used to parse the value
+// from the SNMP Get because sometimes the float values are
+// set as an SNMP STRING type (ugh)
+// we may need to eventually make this more generic
+// in the event we want to actually return a string
+func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
+	if p.Type == gosnmp.OctetString {
+		v := (p.Value).(string)
+		v = strings.TrimSpace(v)
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse float from string: %v", err)
+		}
+		return f, nil
+	}
+	// otherwise it should be an int and we convert to float
+	f, _ := gosnmp.ToBigInt(p.Value).Float64()
+	return f, nil
+}
+
 // GetSNMPValue uses a Target definition to get a gauge value via snmp call
 func GetSNMPValue(t Target) (float64, error) {
-	slog.Debug("getting snmp value", "target", *t.IP, "port", t.Port, "community", t.Community, "oid", *t.OID, "timeout_seconds", t.Timeout)
+	slog.Debug(
+		"getting snmp value",
+		"target", *t.IP,
+		"port", t.Port,
+		"community", t.Community,
+		"oid", *t.OID,
+		"timeout_seconds", t.Timeout,
+	)
 	g := &gosnmp.GoSNMP{
 		Target:    *t.IP,
 		Port:      uint16(t.Port),
@@ -117,7 +146,7 @@ func GetSNMPValue(t Target) (float64, error) {
 		return 0, fmt.Errorf("failed to get oid '%s', err: %v", *t.OID, err)
 	}
 
-	val, _ := gosnmp.ToBigInt(result.Variables[0].Value).Float64()
+	val, _ := GetFloatFromSNMPValue(result.Variables[0])
 	slog.Debug("got value", "value", val)
 	return val, nil
 }
