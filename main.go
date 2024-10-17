@@ -95,13 +95,26 @@ func LoadConfig() (*Config, error) {
 	return &conf, nil
 }
 
+// Sometimes we get strings back from SNMP like "OFF".
+// let's normalize those strings then write cases for them
+func ConvertSNMPStringToFloat(s string) (float64, error) {
+	ns := strings.ToLower(strings.TrimSpace(s))
+	switch ns {
+	case "off":
+		return 0, nil
+	case "on":
+		return 1, nil
+	}
+	return 0, fmt.Errorf("failed to parse string '%s' to float equivalent", s)
+}
+
 // GetFloatFromSNMPValue is used to parse the value
 // from the SNMP Get because sometimes the float values are
 // set as an SNMP STRING type (ugh)
 // we may need to eventually make this more generic
 // in the event we want to actually return a string
 func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
-	slog.Debug("pdu", "pdu", fmt.Sprintf("%+v", p))	
+	slog.Debug("pdu", "pdu", fmt.Sprintf("%+v", p))
 	if p.Type == gosnmp.OctetString {
 		slog.Debug("snmp value string detected, trying to parse")
 		v, ok := p.Value.([]byte)
@@ -113,7 +126,11 @@ func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 		slog.Debug("value as string", "value", sv)
 		f, err := strconv.ParseFloat(sv, 64)
 		if err != nil {
-			return 0, fmt.Errorf("failed to parse float from string: %v", err)
+			// try to parse the string
+			f, err = ConvertSNMPStringToFloat(sv)
+			if err != nil {
+				return 0, fmt.Errorf("failed to parse float from string: %v", err)
+			}
 		}
 		return f, nil
 	}
