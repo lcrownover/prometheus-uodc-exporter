@@ -18,21 +18,21 @@ import (
 )
 
 type Target struct {
-	SnmpVersion *int    `yaml:"snmpVersion"`
-	Label       *string `yaml:"label"`
-	Help        *string `yaml:"help"`
-	OID         *string `yaml:"oid"`
-	IP          *string `yaml:"ip"`
-	Port        *int    `yaml:"port"`
-	Community   *string `yaml:"community"`
-	Timeout     *int    `yaml:"timeout"`
-	Retries     *int    `yaml:"retries"`
-	Username    *string `yaml:"username"`
-	AuthType    *string `yaml:"authType"`
-	AuthEncrypt *string `yaml:"authEncrypt"`
-	PrivEncrypt *string `yaml:"privEncrypt"`
-	AuthPass    *string `yaml:"authPass"`
-	PrivPass    *string `yaml:"privPass"`
+	SnmpVersion *int    `yaml:"snmpVersion,omitempty"`
+	Label       *string `yaml:"label,omitempty"`
+	Help        *string `yaml:"help,omitempty"`
+	OID         *string `yaml:"oid,omitempty"`
+	IP          *string `yaml:"ip,omitempty"`
+	Port        *int    `yaml:"port,omitempty"`
+	Community   *string `yaml:"community,omitempty"`
+	Timeout     *int    `yaml:"timeout,omitempty"`
+	Retries     *int    `yaml:"retries,omitempty"`
+	Username    *string `yaml:"username,omitempty"`
+	AuthType    *string `yaml:"authType,omitempty"`
+	AuthEncrypt *string `yaml:"authEncrypt,omitempty"`
+	PrivEncrypt *string `yaml:"privEncrypt,omitempty"`
+	AuthPass    *string `yaml:"authPass,omitempty"`
+	PrivPass    *string `yaml:"privPass,omitempty"`
 }
 
 type Config struct {
@@ -207,8 +207,10 @@ func BuildSNMPRequest(t Target) (*gosnmp.GoSNMP, error) {
 
 	// return it early if we're doing v2
 	if v == gosnmp.Version2c {
+		slog.Debug("request is version 2")
 		return g, nil
 	}
+	slog.Debug("request is version 3")
 
 	// otherwise continue to build out snmpv3 request
 
