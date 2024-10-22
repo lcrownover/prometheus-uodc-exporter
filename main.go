@@ -190,16 +190,14 @@ func GetSNMPValue(t Target) (float64, error) {
 func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 	for {
 		for _, target := range conf.Targets {
-			go func(t Target) {
-				val, err := GetSNMPValue(target)
-				if err != nil {
-					slog.Error("failed to get snmp value", "error", err)
-					slog.Debug("fail: setting guage value to 0")
-				} else {
-					slog.Debug("success: setting guage value", "value", val)
-					gauges[*target.Label].Set(val)
-				}
-			}(target)
+			val, err := GetSNMPValue(target)
+			if err != nil {
+				slog.Error("failed to get snmp value", "error", err)
+				slog.Debug("fail: setting guage value to 0")
+			} else {
+				slog.Debug("success: setting guage value", "value", val)
+				gauges[*target.Label].Set(val)
+			}
 		}
 		time.Sleep(time.Duration(conf.Interval) * time.Second)
 	}
