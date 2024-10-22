@@ -312,14 +312,13 @@ func InitGauges(conf Config) map[string]prometheus.Gauge {
 }
 
 func main() {
-	slog.Info("Starting Prometheus UODC Exporter")
-
 	_, debug := os.LookupEnv("DEBUG")
 	logLevel := slog.LevelInfo
 	if debug {
 		logLevel = slog.LevelDebug
 	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})))
+	slog.Info("Starting Prometheus UODC Exporter")
 
 	config, err := LoadConfig()
 	if err != nil {
