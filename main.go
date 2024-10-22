@@ -324,6 +324,7 @@ func main() {
 	config, err := LoadConfig()
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
 	}
 
 	// initialize all the gauges using the config targets
