@@ -18,21 +18,21 @@ import (
 )
 
 type Target struct {
-	SnmpVersion int     `yaml:"snmpVersion"`
-	Label       *string `yaml:"label"`
-	Help        *string `yaml:"help"`
-	OID         *string `yaml:"oid"`
-	IP          *string `yaml:"ip"`
-	Port        *int    `yaml:"port"`
-	Community   *string `yaml:"community"`
-	Timeout     *int    `yaml:"timeout"`
-	Retries     *int    `yaml:"retries"`
-	Username    *string `yaml:"username"`
-	AuthType    *string `yaml:"authType"`
-	AuthEncrypt *string `yaml:"authEncrypt"`
-	PrivEncrypt *string `yaml:"privEncrypt"`
-	AuthPass    *string `yaml:"authPass"`
-	PrivPass    *string `yaml:"privPass"`
+	SnmpVersion int    `yaml:"snmpVersion"`
+	Label       string `yaml:"label"`
+	Help        string `yaml:"help"`
+	OID         string `yaml:"oid"`
+	IP          string `yaml:"ip"`
+	Port        int    `yaml:"port"`
+	Community   string `yaml:"community"`
+	Timeout     int    `yaml:"timeout"`
+	Retries     int    `yaml:"retries"`
+	Username    string `yaml:"username"`
+	AuthType    string `yaml:"authType"`
+	AuthEncrypt string `yaml:"authEncrypt"`
+	PrivEncrypt string `yaml:"privEncrypt"`
+	AuthPass    string `yaml:"authPass"`
+	PrivPass    string `yaml:"privPass"`
 }
 
 type Config struct {
@@ -55,49 +55,49 @@ func processConfig(conf *Config) (Config, error) {
 			conf.Targets[i].SnmpVersion = 2
 		}
 
-		if t.Label == nil {
+		if t.Label == "" {
 			return *conf, fmt.Errorf("label is required in target definition")
 		}
-		if t.Help == nil {
+		if t.Help == "" {
 			return *conf, fmt.Errorf("help is required in target definition")
 		}
-		if t.OID == nil {
+		if t.OID == "" {
 			return *conf, fmt.Errorf("oid is required in target definition")
 		}
-		if t.IP == nil {
+		if t.IP == "" {
 			return *conf, fmt.Errorf("ip is required in target definition")
 		}
-		if t.Port == nil {
-			*conf.Targets[i].Port = 161
+		if t.Port == 0 {
+			conf.Targets[i].Port = 161
 		}
-		if t.Community == nil {
-			*conf.Targets[i].Community = "public"
+		if t.Community == "" {
+			conf.Targets[i].Community = "public"
 		}
-		if t.Timeout == nil {
-			*conf.Targets[i].Timeout = 2
+		if t.Timeout == 0 {
+			conf.Targets[i].Timeout = 2
 		}
-		if t.Retries == nil {
-			*conf.Targets[i].Retries = 1
+		if t.Retries == 0 {
+			conf.Targets[i].Retries = 1
 		}
 
 		// snmpv3 requires some more stuff
 		if t.SnmpVersion == 3 {
-			if t.Username == nil {
+			if t.Username == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set username")
 			}
-			if t.AuthType == nil {
+			if t.AuthType == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set authType")
 			}
-			if t.AuthEncrypt == nil {
+			if t.AuthEncrypt == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set authEncrypt")
 			}
-			if t.PrivEncrypt == nil {
+			if t.PrivEncrypt == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set privEncrypt")
 			}
-			if t.AuthPass == nil {
+			if t.AuthPass == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set authPass")
 			}
-			if t.PrivPass == nil {
+			if t.PrivPass == "" {
 				return *conf, fmt.Errorf("if using snmpv3, you must set privPass")
 			}
 		}
@@ -197,12 +197,12 @@ func BuildSNMPRequest(t Target) (*gosnmp.GoSNMP, error) {
 	}
 
 	g := &gosnmp.GoSNMP{
-		Target:    *t.IP,
-		Port:      uint16(*t.Port),
-		Community: *t.Community,
+		Target:    t.IP,
+		Port:      uint16(t.Port),
+		Community: t.Community,
 		Version:   v,
-		Timeout:   time.Duration(*t.Timeout) * time.Second,
-		Retries:   *t.Retries,
+		Timeout:   time.Duration(t.Timeout) * time.Second,
+		Retries:   t.Retries,
 	}
 
 	// return it early if we're doing v2
@@ -216,32 +216,32 @@ func BuildSNMPRequest(t Target) (*gosnmp.GoSNMP, error) {
 
 	// auth encrypt type
 	var ae gosnmp.SnmpV3AuthProtocol
-	switch *t.AuthEncrypt {
+	switch t.AuthEncrypt {
 	case "SHA":
 		ae = gosnmp.SHA
 	default:
-		return nil, fmt.Errorf("unsupported authEncrypt type: %s", *t.AuthEncrypt)
+		return nil, fmt.Errorf("unsupported authEncrypt type: %s", t.AuthEncrypt)
 	}
 
 	// auth encrypt type
 	var pe gosnmp.SnmpV3PrivProtocol
-	switch *t.PrivEncrypt {
+	switch t.PrivEncrypt {
 	case "DES":
 		pe = gosnmp.DES
 	case "AES":
 		pe = gosnmp.AES
 	default:
-		return nil, fmt.Errorf("unsupported authEncrypt type: %s", *t.PrivEncrypt)
+		return nil, fmt.Errorf("unsupported authEncrypt type: %s", t.PrivEncrypt)
 	}
 
 	g.SecurityModel = gosnmp.UserSecurityModel
 	g.MsgFlags = gosnmp.AuthPriv
 	g.SecurityParameters = &gosnmp.UsmSecurityParameters{
-		UserName:                 *t.Username,
+		UserName:                 t.Username,
 		AuthenticationProtocol:   ae,
-		AuthenticationPassphrase: *t.AuthPass,
+		AuthenticationPassphrase: t.AuthPass,
 		PrivacyProtocol:          pe,
-		PrivacyPassphrase:        *t.PrivPass,
+		PrivacyPassphrase:        t.PrivPass,
 	}
 	return g, nil
 }
@@ -250,11 +250,11 @@ func BuildSNMPRequest(t Target) (*gosnmp.GoSNMP, error) {
 func GetSNMPValue(t Target) (float64, error) {
 	slog.Debug(
 		"getting snmp value",
-		"label", *t.Label,
-		"target", *t.IP,
+		"label", t.Label,
+		"target", t.IP,
 		"port", t.Port,
 		"community", t.Community,
-		"oid", *t.OID,
+		"oid", t.OID,
 		"timeout_seconds", t.Timeout,
 	)
 	g, err := BuildSNMPRequest(t)
@@ -264,14 +264,14 @@ func GetSNMPValue(t Target) (float64, error) {
 
 	err = g.Connect()
 	if err != nil {
-		return 0, fmt.Errorf("failed to connect to '%s:%d', err: %v", *t.IP, t.Port, err)
+		return 0, fmt.Errorf("failed to connect to '%s:%d', err: %v", t.IP, t.Port, err)
 	}
 	defer g.Conn.Close()
 
-	oids := []string{*t.OID}
+	oids := []string{t.OID}
 	result, err := g.Get(oids)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get oid '%s', err: %v", *t.OID, err)
+		return 0, fmt.Errorf("failed to get oid '%s', err: %v", t.OID, err)
 	}
 
 	val, _ := ParseFloatFromSNMPValue(result.Variables[0])
@@ -290,7 +290,7 @@ func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 				slog.Debug("fail: setting guage value to 0")
 			} else {
 				slog.Debug("success: setting guage value", "value", val)
-				gauges[*target.Label].Set(val)
+				gauges[target.Label].Set(val)
 			}
 		}
 		time.Sleep(time.Duration(conf.Interval) * time.Second)
@@ -303,9 +303,9 @@ func InitGauges(conf Config) map[string]prometheus.Gauge {
 	slog.Info("Initializing Gauges")
 	m := make(map[string]prometheus.Gauge)
 	for _, target := range conf.Targets {
-		m[*target.Label] = promauto.NewGauge(prometheus.GaugeOpts{
-			Name: *target.Label,
-			Help: *target.Help,
+		m[target.Label] = promauto.NewGauge(prometheus.GaugeOpts{
+			Name: target.Label,
+			Help: target.Help,
 		})
 	}
 	return m
