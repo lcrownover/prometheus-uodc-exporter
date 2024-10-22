@@ -18,7 +18,7 @@ import (
 )
 
 type Target struct {
-	SnmpVersion *int    `yaml:"snmpVersion,omitempty"`
+	SnmpVersion int    `yaml:"snmpVersion,omitempty"`
 	Label       *string `yaml:"label,omitempty"`
 	Help        *string `yaml:"help,omitempty"`
 	OID         *string `yaml:"oid,omitempty"`
@@ -48,11 +48,11 @@ func processConfig(conf *Config) (Config, error) {
 	}
 
 	for i, t := range conf.Targets {
-		switch *t.SnmpVersion {
+		switch t.SnmpVersion {
 		case 3:
-			*conf.Targets[i].SnmpVersion = 3
+			conf.Targets[i].SnmpVersion = 3
 		default:
-			*conf.Targets[i].SnmpVersion = 2
+			conf.Targets[i].SnmpVersion = 2
 		}
 
 		if t.Label == nil {
@@ -81,7 +81,7 @@ func processConfig(conf *Config) (Config, error) {
 		}
 
 		// snmpv3 requires some more stuff
-		if *t.SnmpVersion == 3 {
+		if t.SnmpVersion == 3 {
 			if t.Username == nil {
 				return *conf, fmt.Errorf("if using snmpv3, you must set username")
 			}
