@@ -189,7 +189,7 @@ func ParseFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 func BuildSNMPRequest(t Target) (*gosnmp.GoSNMP, error) {
 	// snmp version
 	var v gosnmp.SnmpVersion
-	switch *t.SnmpVersion {
+	switch t.SnmpVersion {
 	case 2:
 		v = gosnmp.Version2c
 	case 3:
