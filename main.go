@@ -97,7 +97,7 @@ func LoadConfig() (*Config, error) {
 
 // Sometimes we get strings back from SNMP like "OFF".
 // let's normalize those strings then write cases for them
-func ConvertSNMPStringToFloat(s string) (float64, error) {
+func ConvertSNMPStringKeywordToFloat(s string) (float64, error) {
 	slog.Debug("trying to parse known strings", "s", s)
 	ns := strings.ToLower(strings.TrimSpace(s))
 	switch ns {
@@ -111,13 +111,14 @@ func ConvertSNMPStringToFloat(s string) (float64, error) {
 	return 0, fmt.Errorf("failed to parse string '%s' to float equivalent", s)
 }
 
-// GetFloatFromSNMPValue is used to parse the value
+// ParseFloatFromSNMPValue is used to parse the value
 // from the SNMP Get because sometimes the float values are
 // set as an SNMP STRING type (ugh)
 // we may need to eventually make this more generic
 // in the event we want to actually return a string
-func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
+func ParseFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 	slog.Debug("pdu", "pdu", fmt.Sprintf("%+v", p))
+	// this is what it usually is, including strings
 	if p.Type == gosnmp.OctetString {
 		slog.Debug("snmp value string detected, trying to parse")
 		v, ok := p.Value.([]byte)
@@ -127,10 +128,15 @@ func GetFloatFromSNMPValue(p gosnmp.SnmpPDU) (float64, error) {
 		sv := string(v)
 		sv = strings.TrimSpace(sv)
 		slog.Debug("value as string", "value", sv)
+		// first, we just try to parse the string into a float64
+		// usually this is the way it works
 		f, err := strconv.ParseFloat(sv, 64)
 		if err != nil {
-			// try to parse the string
-			f, err = ConvertSNMPStringToFloat(sv)
+			// sometimes the string is actually a string like "off" or "on"
+			// in which case we run it through this conversion function
+			// that keeps track of the known keywords and returns a float64
+			// if one of them is found
+			f, err = ConvertSNMPStringKeywordToFloat(sv)
 			if err != nil {
 				return 0, fmt.Errorf("failed to parse float from string: %v", err)
 			}
@@ -174,7 +180,7 @@ func GetSNMPValue(t Target) (float64, error) {
 		return 0, fmt.Errorf("failed to get oid '%s', err: %v", *t.OID, err)
 	}
 
-	val, _ := GetFloatFromSNMPValue(result.Variables[0])
+	val, _ := ParseFloatFromSNMPValue(result.Variables[0])
 	slog.Debug("got value", "value", val)
 	return val, nil
 }
@@ -184,15 +190,16 @@ func GetSNMPValue(t Target) (float64, error) {
 func recordMetrics(conf Config, gauges map[string]prometheus.Gauge) {
 	for {
 		for _, target := range conf.Targets {
-			val, err := GetSNMPValue(target)
-			if err != nil {
-				slog.Error("failed to get snmp value", "error", err)
-				slog.Debug("fail: setting guage value to 0")
-				gauges[*target.Label].Set(0) // delete this in prod
-			} else {
-				slog.Debug("success: setting guage value", "value", val)
-				gauges[*target.Label].Set(val)
-			}
+			go func(t Target) {
+				val, err := GetSNMPValue(target)
+				if err != nil {
+					slog.Error("failed to get snmp value", "error", err)
+					slog.Debug("fail: setting guage value to 0")
+				} else {
+					slog.Debug("success: setting guage value", "value", val)
+					gauges[*target.Label].Set(val)
+				}
+			}(target)
 		}
 		time.Sleep(time.Duration(conf.Interval) * time.Second)
 	}
